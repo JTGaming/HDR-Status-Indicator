@@ -14,6 +14,7 @@ UINT const WMAPP_NOTIFYCALLBACK = WM_APP + 1;
 wchar_t const szWindowClass[] = L"HDR Status";
 // Use a guid to uniquely identify our icon
 class __declspec(uuid("1f97e126-cf00-466f-bd3a-10f45a024802")) NotifIcon;
+HWND main_hwnd = NULL;
 
 int APIENTRY wWinMain(
     _In_ HINSTANCE hInstance,
@@ -43,8 +44,8 @@ int APIENTRY wWinMain(
 
     // Create the main window. This could be a hidden window if you don't need
     // any UI other than the notification icon.
-    HWND hwnd = CreateWindow(szWindowClass, szWindowClass, 0, 0, 0, 0, 0, 0, 0, g_hInst, 0);
-    if (hwnd)
+    main_hwnd = CreateWindow(szWindowClass, szWindowClass, 0, 0, 0, 0, 0, 0, 0, g_hInst, 0);
+    if (main_hwnd)
         MainLoop();
 
     return 0;
@@ -139,7 +140,9 @@ BOOL AddIcon(HWND hwnd)
     nid.guidItem = __uuidof(NotifIcon);
     nid.uCallbackMessage = WMAPP_NOTIFYCALLBACK;
     LoadIconMetric(g_hInst, MAKEINTRESOURCE(IDI_NOTIFICATIONICONIDX + (int)SDR), LIM_SMALL, &nid.hIcon);
-    Shell_NotifyIcon(NIM_ADD, &nid);
+    BOOL ret = Shell_NotifyIcon(NIM_ADD, &nid);
+    if (ret != TRUE)
+        return FALSE;
 
     // NOTIFYICON_VERSION_4 is prefered
     nid.uVersion = NOTIFYICON_VERSION_4;
@@ -162,7 +165,12 @@ void UpdateIcon(DISPMODE mode)
         return;
     BOOL ret = Shell_NotifyIcon(NIM_MODIFY, &nid);
     if (ret != TRUE)
+    {
+        DeleteIcon();
+        AddIcon(main_hwnd);
+        old_mode = PADDING;
         return;
+    }
 
     old_mode = mode;
 
